@@ -1,91 +1,59 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>逆翻訳</title>
-    <style>
-        :root {
-            --bg: #000;
-            --accent: #ffff00;
-            --text: #fff;
-            --card-bg: #1a1a1a;
-            --danger: #ff4757;
-        }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .container { max-width: 500px; margin: 0 auto; }
-        
-        h2 { text-align: center; color: var(--accent); font-size: 1.2rem; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+<style>
+    /* ...既存のスタイル... */
+    .final-result {
+        margin-top: 20px;
+        padding: 20px;
+        background: #000;
+        border: 3px solid var(--accent);
+        border-radius: 10px;
+        display: none; /* 初期は非表示 */
+        animation: pulse 2s infinite;
+    }
+    .final-title {
+        color: var(--accent);
+        font-weight: bold;
+        font-size: 0.9rem;
+        margin-bottom: 10px;
+        text-align: center;
+        text-transform: uppercase;
+    }
+    .final-text {
+        font-size: 1.3rem;
+        line-height: 1.5;
+        text-align: center;
+        font-weight: bold;
+    }
+    @keyframes pulse {
+        0% { box-shadow: 0 0 0 0 rgba(255, 255, 0, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(255, 255, 0, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(255, 255, 0, 0); }
+    }
+</style>
 
-        .input-area { position: relative; margin-bottom: 10px; }
-        textarea {
-            width: 100%; height: 100px; background: #222; color: #fff;
-            border: 2px solid #444; border-radius: 8px; padding: 12px;
-            font-size: 16px; box-sizing: border-box; display: block;
-        }
-
-        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        
-        .btn-exec { flex: 3; padding: 15px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
-        .btn-clear { flex: 1; padding: 15px; background: #333; color: #ccc; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; }
-        
-        button:active { opacity: 0.7; transform: scale(0.98); }
-
-        .log-container { border-left: 2px solid var(--accent); padding-left: 15px; }
-        .step-box { background: var(--card-bg); margin-bottom: 15px; padding: 12px; border-radius: 5px; animation: fadeIn 0.4s forwards; }
-        .step-header { font-size: 0.75rem; color: var(--accent); margin-bottom: 5px; font-weight: bold; }
-        .step-jp { font-size: 1.1rem; line-height: 1.4; color: #fff; }
-
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-        .loading-dots:after { content: '...'; animation: dots 1s infinite; }
-        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h2>逆翻訳</h2>
-    
-    <div class="input-area">
-        <textarea id="inputText" placeholder="ここに文章を入力..."></textarea>
-    </div>
-
-    <div class="btn-group">
-        <button id="mainBtn" class="btn-exec" onclick="startReTranslation()">実行</button>
-        <button class="btn-clear" onclick="clearAll()">削除</button>
-    </div>
-
-    <div id="logArea" class="log-container"></div>
+<div id="finalArea" class="final-result">
+    <div class="final-title">✨ 最終結果 ✨</div>
+    <div id="finalText" class="final-text"></div>
 </div>
 
 <script>
-    const languages = [
-        {name: "ベンガル語", code: "bn"},{name: "ハワイ語", code: "haw"},
-        {name: "アラビア語", code: "ar"}, {name: "ヘブライ語", code: "he"},
-        {name: "ヨルバ語", code: "yo"}, {name: "モンゴル語", code: "mn"},
-        {name: "フィンランド語", code: "fi"}, {name: "ズールー語", code: "zu"},
-        {name: "アムハラ語", code: "am"}, {name: "クルド語", code: "ku"}
-    ];
-
-    async function translate(text, source, target) {
-        const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
-        const response = await fetch(url);
-        const data = await response.json();
-        return data[0].map(item => item[0]).join('');
-    }
-
     async function startReTranslation() {
         const input = document.getElementById('inputText').value;
         const logArea = document.getElementById('logArea');
+        const finalArea = document.getElementById('finalArea');
+        const finalText = document.getElementById('finalText');
         const btn = document.getElementById('mainBtn');
+        
         if (!input) return;
 
         btn.disabled = true;
         btn.innerText = "翻訳中...";
         logArea.innerHTML = "";
+        finalArea.style.display = "none"; // 前回の結果を隠す
+        
         let currentText = input;
 
         for (let i = 0; i < languages.length; i++) {
+            // ...既存のループ処理...
             const lang = languages[i];
             const box = document.createElement('div');
             box.className = 'step-box';
@@ -102,6 +70,12 @@
             }
             await new Promise(r => setTimeout(r, 600));
         }
+
+        // --- ここで最終結果を表示 ---
+        finalText.innerText = currentText;
+        finalArea.style.display = "block";
+        window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+
         btn.disabled = false;
         btn.innerText = "再実行";
     }
@@ -110,10 +84,8 @@
         if(confirm("全て削除しますか？")) {
             document.getElementById('inputText').value = "";
             document.getElementById('logArea').innerHTML = "";
+            document.getElementById('finalArea').style.display = "none"; // 最終結果も消す
             document.getElementById('mainBtn').innerText = "実行";
         }
     }
 </script>
-
-</body>
-</html>
