@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>逆翻訳 - カスタム順</title>
+    <title>逆翻訳 - ドラッグ並び替え</title>
     <style>
         :root {
             --bg: #000;
@@ -19,19 +19,28 @@
         
         h2 { text-align: center; color: var(--accent); font-size: 1.2rem; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
 
-        /* 設定エリア */
         .settings-label { font-size: 0.8rem; color: var(--accent); margin-bottom: 8px; font-weight: bold; display: block; }
+        
+        /* ドラッグエリアのスタイル */
         .lang-config { 
-            display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; 
-            background: #111; padding: 10px; border-radius: 8px; border: 1px dashed var(--muted);
+            display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; 
+            background: #111; padding: 12px; border-radius: 8px; border: 1px dashed var(--muted);
         }
         .lang-chip {
-            background: #333; color: #fff; padding: 5px 10px; border-radius: 20px;
-            font-size: 0.75rem; cursor: pointer; user-select: none; border: 1px solid transparent;
-            transition: all 0.2s;
+            background: #333; color: #fff; padding: 6px 12px; border-radius: 4px;
+            font-size: 0.8rem; cursor: grab; user-select: none; border: 1px solid #444;
+            display: flex; align-items: center; gap: 8px; transition: opacity 0.2s;
         }
-        .lang-chip:hover { border-color: var(--accent); }
-        .lang-chip.active { background: var(--accent); color: #000; font-weight: bold; }
+        .lang-chip:active { cursor: grabbing; }
+        .lang-chip.dragging { opacity: 0.4; border: 1px dashed var(--accent); }
+        .lang-chip.inactive { opacity: 0.4; background: #222; }
+        
+        /* 翻訳に含めるかのスイッチ */
+        .toggle-dot {
+            width: 10px; height: 10px; border-radius: 50%; background: var(--muted);
+            display: inline-block; cursor: pointer;
+        }
+        .active .toggle-dot { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
 
         .input-area { position: relative; margin-bottom: 10px; }
         textarea {
@@ -42,12 +51,9 @@
         textarea:focus { border-color: var(--accent); }
 
         .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        
-        .btn-exec { flex: 3; padding: 15px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        .btn-exec { flex: 3; padding: 15px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
         .btn-exec.stopping { background: var(--danger); color: #fff; }
         .btn-clear { flex: 1; padding: 15px; background: #333; color: #ccc; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; }
-        
-        button:active { opacity: 0.7; transform: scale(0.98); }
 
         .log-container { border-left: 2px solid var(--accent); padding-left: 15px; }
         .step-box { background: var(--card-bg); margin-bottom: 15px; padding: 12px; border-radius: 5px; animation: fadeIn 0.4s forwards; }
@@ -65,8 +71,6 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
         .loading-dots:after { content: '...'; animation: dots 1s infinite; }
         @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
-        
-        small { color: #888; font-size: 0.7rem; display: block; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -74,7 +78,7 @@
 <div class="container">
     <h2>逆翻訳</h2>
     
-    <label class="settings-label">翻訳ルート設定 <small>※クリックして有効化/順番変更</small></label>
+    <label class="settings-label">翻訳ルート（ドラッグで並び替え / 点をクリックでON・OFF）</label>
     <div id="langConfig" class="lang-config"></div>
 
     <div class="input-area">
@@ -95,53 +99,83 @@
 </div>
 
 <script>
-    // 初期言語リスト
     let languages = [
-        {name: "ベンガル語", code: "bn", active: true},
-        {name: "ハワイ語", code: "haw", active: true},
-        {name: "アラビア語", code: "ar", active: true},
-        {name: "ヘブライ語", code: "he", active: true},
-        {name: "ヨルバ語", code: "yo", active: true},
-        {name: "モンゴル語", code: "mn", active: true},
-        {name: "フィンランド語", code: "fi", active: true},
-        {name: "ズールー語", code: "zu", active: true},
-        {name: "アムハラ語", code: "am", active: true},
-        {name: "クルド語", code: "ku", active: true}
+        {id: 0, name: "ベンガル語", code: "bn", active: true},
+        {id: 1, name: "ハワイ語", code: "haw", active: true},
+        {id: 2, name: "アラビア語", code: "ar", active: true},
+        {id: 3, name: "ヘブライ語", code: "he", active: true},
+        {id: 4, name: "ヨルバ語", code: "yo", active: true},
+        {id: 5, name: "モンゴル語", code: "mn", active: true},
+        {id: 6, name: "フィンランド語", code: "fi", active: true},
+        {id: 7, name: "ズールー語", code: "zu", active: true},
+        {id: 8, name: "アムハラ語", code: "am", active: true},
+        {id: 9, name: "クルド語", code: "ku", active: true}
     ];
 
     let isProcessing = false;
     let shouldStop = false;
 
-    // 言語チップの描画
     function renderLangConfig() {
         const container = document.getElementById('langConfig');
         container.innerHTML = "";
         languages.forEach((lang, index) => {
             const chip = document.createElement('div');
-            chip.className = `lang-chip ${lang.active ? 'active' : ''}`;
-            chip.innerText = `${lang.active ? (index + 1) + '.' : ''}${lang.name}`;
-            chip.onclick = () => toggleOrMoveLanguage(index);
+            chip.className = `lang-chip ${lang.active ? 'active' : 'inactive'}`;
+            chip.draggable = !isProcessing;
+            chip.innerHTML = `<span class="toggle-dot" onclick="toggleLanguage(${index})"></span> ${lang.name}`;
+            
+            // ドラッグイベント
+            chip.addEventListener('dragstart', () => { chip.classList.add('dragging'); });
+            chip.addEventListener('dragend', () => { chip.classList.remove('dragging'); updateOrder(); });
+            
             container.appendChild(chip);
+        });
+
+        container.addEventListener('dragover', e => {
+            e.preventDefault();
+            const draggingItem = document.querySelector('.dragging');
+            const siblings = [...container.querySelectorAll('.lang-chip:not(.dragging)')];
+            let nextSibling = siblings.find(sibling => {
+                return e.clientX <= sibling.offsetLeft + sibling.offsetWidth / 2 && e.clientY <= sibling.offsetTop + sibling.offsetHeight / 2;
+            });
+            // 簡易的な位置判定（要素の並び順）
+            const afterElement = getDragAfterElement(container, e.clientX, e.clientY);
+            if (afterElement == null) {
+                container.appendChild(draggingItem);
+            } else {
+                container.insertBefore(draggingItem, afterElement);
+            }
         });
     }
 
-    // 言語の有効化/無効化・並び替えロジック
-    function toggleOrMoveLanguage(index) {
+    // ドラッグ位置の判定ロジック
+    function getDragAfterElement(container, x, y) {
+        const draggableElements = [...container.querySelectorAll('.lang-chip:not(.dragging)')];
+        return draggableElements.reduce((closest, child) => {
+            const box = child.getBoundingClientRect();
+            const offsetX = x - box.left - box.width / 2;
+            const offsetY = y - box.top - box.height / 2;
+            if (offsetY < 0 && offsetY > closest.offset) {
+                return { offset: offsetY, element: child };
+            } else {
+                return closest;
+            }
+        }, { offset: Number.NEGATIVE_INFINITY }).element;
+    }
+
+    // HTMLの並び順を配列に反映
+    function updateOrder() {
+        const chips = [...document.querySelectorAll('.lang-chip')];
+        const newOrder = chips.map(chip => {
+            const name = chip.innerText.trim();
+            return languages.find(l => l.name === name);
+        });
+        languages = newOrder;
+    }
+
+    function toggleLanguage(index) {
         if (isProcessing) return;
-        
-        const lang = languages[index];
-        if (lang.active) {
-            // すでにアクティブな場合は末尾に移動するか、無効化するか
-            // 今回は「クリックするたびに選択順に並ぶ」挙動のため、一度OFFにする
-            lang.active = false;
-            // 無効化したものはリストの最後に移動させる（整理のため）
-            languages.push(languages.splice(index, 1)[0]);
-        } else {
-            // 無効なものをクリックしたら有効化して、アクティブな群の最後に挿入
-            lang.active = true;
-            const activeCount = languages.filter(l => l.active).length;
-            languages.splice(activeCount - 1, 0, languages.splice(index, 1)[0]);
-        }
+        languages[index].active = !languages[index].active;
         renderLangConfig();
     }
 
@@ -153,45 +187,35 @@
     }
 
     function handleButtonClick() {
-        if (isProcessing) {
-            shouldStop = true;
-        } else {
-            startReTranslation();
-        }
+        if (isProcessing) { shouldStop = true; } 
+        else { startReTranslation(); }
     }
 
     async function startReTranslation() {
         const input = document.getElementById('inputText').value;
-        const logArea = document.getElementById('logArea');
-        const finalArea = document.getElementById('finalArea');
-        const finalText = document.getElementById('finalText');
-        const finalLabel = document.getElementById('finalLabel');
-        const btn = document.getElementById('mainBtn');
-        
         const activeLangs = languages.filter(l => l.active);
-
         if (!input || activeLangs.length === 0) return;
 
         isProcessing = true;
         shouldStop = false;
+        renderLangConfig(); // ドラッグ無効化のため再描画
+        
+        const btn = document.getElementById('mainBtn');
         btn.innerText = "中止する";
         btn.classList.add("stopping");
-        logArea.innerHTML = "";
-        finalArea.style.display = "none";
+        document.getElementById('logArea').innerHTML = "";
+        document.getElementById('finalArea').style.display = "none";
         
         let currentText = input;
 
         for (let i = 0; i < activeLangs.length; i++) {
-            if (shouldStop) {
-                finalLabel.innerText = "ーーー 中断されました ーーー";
-                break;
-            }
+            if (shouldStop) break;
 
             const lang = activeLangs[i];
             const box = document.createElement('div');
             box.className = 'step-box';
             box.innerHTML = `<div class="step-header">STEP ${i+1}: ${lang.name} </div><div class="step-jp loading-dots">翻訳中</div>`;
-            logArea.appendChild(box);
+            document.getElementById('logArea').appendChild(box);
             window.scrollTo(0, document.body.scrollHeight);
 
             try {
@@ -204,17 +228,14 @@
             await new Promise(r => setTimeout(r, 600));
         }
 
-        if (!shouldStop) {
-            finalLabel.innerText = "ーーー 最終結果 ーーー";
-        }
-        
-        finalText.innerText = currentText;
-        finalArea.style.display = "block";
+        document.getElementById('finalLabel').innerText = shouldStop ? "ーーー 中断されました ーーー" : "ーーー 最終結果 ーーー";
+        document.getElementById('finalText').innerText = currentText;
+        document.getElementById('finalArea').style.display = "block";
         
         isProcessing = false;
-        shouldStop = false;
         btn.innerText = "再実行";
         btn.classList.remove("stopping");
+        renderLangConfig();
         window.scrollTo(0, document.body.scrollHeight);
     }
 
@@ -226,9 +247,7 @@
         document.getElementById('mainBtn').innerText = "実行";
     }
 
-    // 初回起動
     renderLangConfig();
 </script>
-
 </body>
 </html>
