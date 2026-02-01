@@ -2,8 +2,8 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>逆翻訳 - ドラッグ並び替え</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>逆翻訳 Mobile</title>
     <style>
         :root {
             --bg: #000;
@@ -14,63 +14,72 @@
             --final-bg: #222;
             --muted: #444;
         }
-        body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
-        .container { max-width: 500px; margin: 0 auto; }
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
+            background: var(--bg); color: var(--text); padding: 15px; margin: 0; 
+            overflow-x: hidden;
+        }
+        .container { max-width: 100%; margin: 0 auto; }
         
-        h2 { text-align: center; color: var(--accent); font-size: 1.2rem; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
+        h2 { text-align: center; color: var(--accent); font-size: 1.1rem; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-top: 0; }
 
-        .settings-label { font-size: 0.8rem; color: var(--accent); margin-bottom: 8px; font-weight: bold; display: block; }
+        .settings-label { font-size: 0.75rem; color: var(--accent); margin-bottom: 10px; font-weight: bold; display: block; }
         
-        /* ドラッグエリアのスタイル */
+        /* スマホ向けドラッグエリア */
         .lang-config { 
-            display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px; 
-            background: #111; padding: 12px; border-radius: 8px; border: 1px dashed var(--muted);
+            display: flex; flex-direction: column; gap: 6px; margin-bottom: 20px; 
+            background: #111; padding: 10px; border-radius: 12px; border: 1px solid var(--muted);
+            touch-action: none; /* ブラウザのスクロールを一時的に無効化できるように */
         }
         .lang-chip {
-            background: #333; color: #fff; padding: 6px 12px; border-radius: 4px;
-            font-size: 0.8rem; cursor: grab; user-select: none; border: 1px solid #444;
-            display: flex; align-items: center; gap: 8px; transition: opacity 0.2s;
+            background: #2a2a2a; color: #fff; padding: 14px; border-radius: 8px;
+            font-size: 0.9rem; position: relative; display: flex; align-items: center; 
+            justify-content: space-between; border: 1px solid #333;
+            transition: transform 0.1s, box-shadow 0.1s;
         }
-        .lang-chip:active { cursor: grabbing; }
-        .lang-chip.dragging { opacity: 0.4; border: 1px dashed var(--accent); }
-        .lang-chip.inactive { opacity: 0.4; background: #222; }
+        .lang-chip.active { border-left: 4px solid var(--accent); }
+        .lang-chip.inactive { opacity: 0.4; background: #1a1a1a; border-left: 4px solid #555; }
         
-        /* 翻訳に含めるかのスイッチ */
-        .toggle-dot {
-            width: 10px; height: 10px; border-radius: 50%; background: var(--muted);
-            display: inline-block; cursor: pointer;
+        /* 並び替えハンドル（指で掴む場所） */
+        .drag-handle { 
+            width: 30px; height: 20px; 
+            background: repeating-linear-gradient(transparent, transparent 2px, #666 2px, #666 4px);
+            margin-left: 10px;
         }
-        .active .toggle-dot { background: var(--accent); box-shadow: 0 0 5px var(--accent); }
 
-        .input-area { position: relative; margin-bottom: 10px; }
+        .toggle-btn {
+            background: transparent; color: var(--accent); border: 1px solid var(--accent);
+            padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: bold;
+        }
+        .inactive .toggle-btn { color: #888; border-color: #555; }
+
+        .input-area { margin-bottom: 10px; }
         textarea {
-            width: 100%; height: 100px; background: #222; color: #fff;
-            border: 2px solid var(--muted); border-radius: 8px; padding: 12px;
-            font-size: 16px; box-sizing: border-box; display: block; outline: none;
+            width: 100%; height: 90px; background: #222; color: #fff;
+            border: 2px solid var(--muted); border-radius: 12px; padding: 12px;
+            font-size: 16px; box-sizing: border-box; display: block; outline: none; -webkit-appearance: none;
         }
-        textarea:focus { border-color: var(--accent); }
 
-        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        .btn-exec { flex: 3; padding: 15px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; }
+        .btn-group { display: flex; gap: 8px; margin-bottom: 20px; }
+        .btn-exec { flex: 3; padding: 16px; background: var(--accent); color: #000; border: none; border-radius: 12px; font-size: 1rem; font-weight: bold; }
         .btn-exec.stopping { background: var(--danger); color: #fff; }
-        .btn-clear { flex: 1; padding: 15px; background: #333; color: #ccc; border: none; border-radius: 8px; font-size: 0.9rem; font-weight: bold; cursor: pointer; }
+        .btn-clear { flex: 1; padding: 16px; background: #333; color: #ccc; border: none; border-radius: 12px; font-size: 0.8rem; }
 
-        .log-container { border-left: 2px solid var(--accent); padding-left: 15px; }
-        .step-box { background: var(--card-bg); margin-bottom: 15px; padding: 12px; border-radius: 5px; animation: fadeIn 0.4s forwards; }
-        .step-header { font-size: 0.75rem; color: var(--accent); margin-bottom: 5px; font-weight: bold; }
-        .step-jp { font-size: 1.1rem; line-height: 1.4; color: #fff; }
+        .log-container { border-left: 2px solid var(--accent); padding-left: 12px; }
+        .step-box { background: var(--card-bg); margin-bottom: 10px; padding: 12px; border-radius: 8px; font-size: 0.9rem; }
+        .step-header { font-size: 0.7rem; color: var(--accent); margin-bottom: 4px; }
 
         .final-result-container {
-            margin-top: 30px; padding: 20px; background: var(--final-bg);
-            border: 2px solid var(--accent); border-radius: 10px;
-            display: none; text-align: center;
+            margin-top: 20px; padding: 15px; background: var(--final-bg);
+            border: 2px solid var(--accent); border-radius: 12px; display: none;
         }
-        .final-label { color: var(--accent); font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; }
-        .final-text { font-size: 1.4rem; font-weight: bold; line-height: 1.5; }
+        .final-text { font-size: 1.2rem; font-weight: bold; text-align: center; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
-        .loading-dots:after { content: '...'; animation: dots 1s infinite; }
-        @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+        /* ドラッグ中の演出 */
+        .dragging { 
+            position: absolute; z-index: 1000; width: calc(100% - 52px); 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5); transform: scale(1.02); opacity: 0.9;
+        }
     </style>
 </head>
 <body>
@@ -78,11 +87,11 @@
 <div class="container">
     <h2>逆翻訳</h2>
     
-    <label class="settings-label">翻訳ルート（ドラッグで並び替え / 点をクリックでON・OFF）</label>
+    <label class="settings-label">翻訳ルート（上下ドラッグで順序変更）</label>
     <div id="langConfig" class="lang-config"></div>
 
     <div class="input-area">
-        <textarea id="inputText" placeholder="ここに文章を入力..."></textarea>
+        <textarea id="inputText" placeholder="ここに入力..."></textarea>
     </div>
 
     <div class="btn-group">
@@ -93,23 +102,18 @@
     <div id="logArea" class="log-container"></div>
 
     <div id="finalArea" class="final-result-container">
-        <div id="finalLabel" class="final-label">ーーー 最終結果 ーーー</div>
+        <div style="color:var(--accent); font-size:0.7rem; text-align:center; margin-bottom:5px;">ーーー 最終結果 ーーー</div>
         <div id="finalText" class="final-text"></div>
     </div>
 </div>
 
 <script>
     let languages = [
-        {id: 0, name: "ベンガル語", code: "bn", active: true},
-        {id: 1, name: "ハワイ語", code: "haw", active: true},
-        {id: 2, name: "アラビア語", code: "ar", active: true},
-        {id: 3, name: "ヘブライ語", code: "he", active: true},
-        {id: 4, name: "ヨルバ語", code: "yo", active: true},
-        {id: 5, name: "モンゴル語", code: "mn", active: true},
-        {id: 6, name: "フィンランド語", code: "fi", active: true},
-        {id: 7, name: "ズールー語", code: "zu", active: true},
-        {id: 8, name: "アムハラ語", code: "am", active: true},
-        {id: 9, name: "クルド語", code: "ku", active: true}
+        {id: "bn", name: "ベンガル語", code: "bn", active: true},
+        {id: "haw", name: "ハワイ語", code: "haw", active: true},
+        {id: "ar", name: "アラビア語", code: "ar", active: true},
+        {id: "he", name: "ヘブライ語", code: "he", active: true},
+        {id: "yo", name: "ヨルバ語", code: "yo", active: true}
     ];
 
     let isProcessing = false;
@@ -121,61 +125,75 @@
         languages.forEach((lang, index) => {
             const chip = document.createElement('div');
             chip.className = `lang-chip ${lang.active ? 'active' : 'inactive'}`;
-            chip.draggable = !isProcessing;
-            chip.innerHTML = `<span class="toggle-dot" onclick="toggleLanguage(${index})"></span> ${lang.name}`;
+            chip.dataset.id = lang.id;
+            chip.innerHTML = `
+                <button class="toggle-btn" onclick="toggleLanguage('${lang.id}')">${lang.active ? 'ON' : 'OFF'}</button>
+                <span>${lang.name}</span>
+                <div class="drag-handle"></div>
+            `;
             
-            // ドラッグイベント
-            chip.addEventListener('dragstart', () => { chip.classList.add('dragging'); });
-            chip.addEventListener('dragend', () => { chip.classList.remove('dragging'); updateOrder(); });
-            
+            // タッチイベントによる並び替え
+            chip.addEventListener('touchstart', (e) => onTouchStart(e, chip, container));
             container.appendChild(chip);
         });
+    }
 
-        container.addEventListener('dragover', e => {
-            e.preventDefault();
-            const draggingItem = document.querySelector('.dragging');
-            const siblings = [...container.querySelectorAll('.lang-chip:not(.dragging)')];
-            let nextSibling = siblings.find(sibling => {
-                return e.clientX <= sibling.offsetLeft + sibling.offsetWidth / 2 && e.clientY <= sibling.offsetTop + sibling.offsetHeight / 2;
-            });
-            // 簡易的な位置判定（要素の並び順）
-            const afterElement = getDragAfterElement(container, e.clientX, e.clientY);
-            if (afterElement == null) {
-                container.appendChild(draggingItem);
-            } else {
-                container.insertBefore(draggingItem, afterElement);
-            }
+    let dragItem = null;
+    let startY = 0;
+    let initialOffset = 0;
+
+    function onTouchStart(e, chip, container) {
+        if (isProcessing) return;
+        dragItem = chip;
+        startY = e.touches[0].pageY;
+        initialOffset = dragItem.offsetTop;
+        
+        dragItem.classList.add('dragging');
+        
+        const moveHandler = (e) => onTouchMove(e, container);
+        const endHandler = () => {
+            dragItem.classList.remove('dragging');
+            dragItem.style.top = "";
+            window.removeEventListener('touchmove', moveHandler);
+            window.removeEventListener('touchend', endHandler);
+            updateArrayFromUI();
+        };
+
+        window.addEventListener('touchmove', moveHandler, { passive: false });
+        window.addEventListener('touchend', endHandler);
+    }
+
+    function onTouchMove(e, container) {
+        e.preventDefault();
+        const currentY = e.touches[0].pageY;
+        const deltaY = currentY - startY;
+        dragItem.style.top = (initialOffset + deltaY) + "px";
+
+        // 他の要素との入れ替え判定
+        const chips = [...container.querySelectorAll('.lang-chip:not(.dragging)')];
+        const nextSibling = chips.find(sibling => {
+            return (currentY - container.getBoundingClientRect().top) < (sibling.offsetTop + sibling.offsetHeight / 2);
         });
+
+        if (nextSibling) {
+            container.insertBefore(dragItem, nextSibling);
+        } else {
+            container.appendChild(dragItem);
+        }
     }
 
-    // ドラッグ位置の判定ロジック
-    function getDragAfterElement(container, x, y) {
-        const draggableElements = [...container.querySelectorAll('.lang-chip:not(.dragging)')];
-        return draggableElements.reduce((closest, child) => {
-            const box = child.getBoundingClientRect();
-            const offsetX = x - box.left - box.width / 2;
-            const offsetY = y - box.top - box.height / 2;
-            if (offsetY < 0 && offsetY > closest.offset) {
-                return { offset: offsetY, element: child };
-            } else {
-                return closest;
-            }
-        }, { offset: Number.NEGATIVE_INFINITY }).element;
-    }
-
-    // HTMLの並び順を配列に反映
-    function updateOrder() {
+    function updateArrayFromUI() {
         const chips = [...document.querySelectorAll('.lang-chip')];
         const newOrder = chips.map(chip => {
-            const name = chip.innerText.trim();
-            return languages.find(l => l.name === name);
+            return languages.find(l => l.id === chip.dataset.id);
         });
         languages = newOrder;
     }
 
-    function toggleLanguage(index) {
+    function toggleLanguage(id) {
         if (isProcessing) return;
-        languages[index].active = !languages[index].active;
+        const lang = languages.find(l => l.id === id);
+        lang.active = !lang.active;
         renderLangConfig();
     }
 
@@ -198,7 +216,7 @@
 
         isProcessing = true;
         shouldStop = false;
-        renderLangConfig(); // ドラッグ無効化のため再描画
+        renderLangConfig();
         
         const btn = document.getElementById('mainBtn');
         btn.innerText = "中止する";
@@ -210,33 +228,28 @@
 
         for (let i = 0; i < activeLangs.length; i++) {
             if (shouldStop) break;
-
             const lang = activeLangs[i];
             const box = document.createElement('div');
             box.className = 'step-box';
-            box.innerHTML = `<div class="step-header">STEP ${i+1}: ${lang.name} </div><div class="step-jp loading-dots">翻訳中</div>`;
+            box.innerHTML = `<div class="step-header">STEP ${i+1}: ${lang.name} </div><div>翻訳中...</div>`;
             document.getElementById('logArea').appendChild(box);
-            window.scrollTo(0, document.body.scrollHeight);
 
             try {
                 let foreignText = await translate(currentText, 'ja', lang.code);
                 currentText = await translate(foreignText, lang.code, 'ja');
-                box.innerHTML = `<div class="step-header">STEP ${i+1}: ${lang.name}</div><div class="step-jp">${currentText}</div>`;
+                box.innerHTML = `<div class="step-header">STEP ${i+1}: ${lang.name}</div><div>${currentText}</div>`;
             } catch (e) {
                 box.innerHTML = `<div style="color:red;">通信エラー</div>`;
             }
             await new Promise(r => setTimeout(r, 600));
         }
 
-        document.getElementById('finalLabel').innerText = shouldStop ? "ーーー 中断されました ーーー" : "ーーー 最終結果 ーーー";
         document.getElementById('finalText').innerText = currentText;
         document.getElementById('finalArea').style.display = "block";
-        
         isProcessing = false;
         btn.innerText = "再実行";
         btn.classList.remove("stopping");
         renderLangConfig();
-        window.scrollTo(0, document.body.scrollHeight);
     }
 
     function clearAll() {
