@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>逆翻訳カスタム</title>
+    <title>逆翻訳</title>
     <style>
         :root {
             --bg: #000;
@@ -88,7 +88,7 @@
 <body>
 
 <div class="container">
-    <h2>逆翻訳カスタム</h2>
+    <h2>逆翻訳</h2>
     
     <div class="lang-header">
         <span style="font-size: 0.75rem; color: #888;">経由する言語を選択：</span>
@@ -114,12 +114,28 @@
 
 <script>
     const languages = [
-        {name: "ベンガル", code: "bn"}, {name: "ハワイ", code: "haw"},
-        {name: "アラビア", code: "ar"}, {name: "ヘブライ", code: "he"},
-        {name: "ヨルバ", code: "yo"}, {name: "モンゴル", code: "mn"},
-        {name: "フィンランド", code: "fi"}, {name: "ズールー", code: "zu"},
-        {name: "アムハラ", code: "am"}, {name: "クルド", code: "ku"}
+        // 主要言語
+        {name: "英語", code: "en"}, {name: "中国語", code: "zh-CN"}, 
+        {name: "韓国語", code: "ko"}, {name: "フランス語", code: "fr"},
+        {name: "ドイツ語", code: "de"}, {name: "スペイン語", code: "es"},
+        {name: "ロシア語", code: "ru"}, {name: "イタリア語", code: "it"},
+        
+        // 変化が起きやすい言語
+        {name: "アラビア", code: "ar"}, {name: "ヒンディー", code: "hi"},
+        {name: "ベンガル", code: "bn"}, {name: "ヘブライ", code: "he"},
+        {name: "タイ", code: "th"}, {name: "ベトナム", code: "vi"},
+        {name: "ギリシャ", code: "el"}, {name: "トルコ", code: "tr"},
+        
+        // ユニークな表現になりやすい言語
+        {name: "スワヒリ", code: "sw"}, {name: "ヨルバ", code: "yo"},
+        {name: "アムハラ", code: "am"}, {name: "ズールー", code: "zu"},
+        {name: "ハワイ", code: "haw"}, {name: "モンゴル", code: "mn"},
+        {name: "フィンランド", code: "fi"}, {name: "アイスランド", code: "is"},
+        {name: "チェコ", code: "cs"}, {name: "ポーランド", code: "pl"},
+        {name: "ネパール", code: "ne"}, {name: "ラテン", code: "la"},
+        {name: "クルド", code: "ku"}, {name: "マオリ", code: "mi"}
     ];
+
 
     let selectedLangs = [];
     let isProcessing = false;
