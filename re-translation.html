@@ -79,7 +79,7 @@
             display: flex; 
             flex-wrap: wrap; 
             gap: 8px; 
-            padding: 0 15px 15px 15px; 
+            padding: 15px; 
             max-height: 180px; 
             overflow-y: auto; 
         }
@@ -217,24 +217,19 @@
         btn.innerText = selectedLangs.length > 0 ? "全て外す" : "全て選択";
     }
 
-    function initLangSelector() {
-        const container = document.getElementById('langSelector');
-        container.innerHTML = "";
-        // 修正：空の配列で初期化（以前は [...languages] でした）
-        selectedLangs = []; 
-
-        languages.forEach(lang => {
-            const chip = document.createElement('div');
-            // 修正：'active' クラスを外す
-            chip.className = 'lang-chip'; 
-            chip.innerText = lang.name;
-            chip.onclick = () => toggleLang(chip, lang);
-            container.appendChild(chip);
-        });
+    function toggleLang(el, lang) {
+        if (isProcessing) return;
+        const index = selectedLangs.findIndex(l => l.code === lang.code);
+        if (index > -1) {
+            selectedLangs.splice(index, 1);
+            el.classList.remove('active');
+        } else {
+            selectedLangs.push(lang);
+            el.classList.add('active');
+        }
         updateChipOrders();
         updateBulkBtnText();
     }
-
 
     function updateChipOrders() {
         const chips = document.querySelectorAll('.lang-chip');
