@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>逆翻訳</title>
+    <title>逆翻訳 - カスタム順</title>
     <style>
         :root {
             --bg: #000;
@@ -12,18 +12,34 @@
             --card-bg: #1a1a1a;
             --danger: #ff6b6b;
             --final-bg: #222;
+            --muted: #444;
         }
         body { font-family: sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
         .container { max-width: 500px; margin: 0 auto; }
         
         h2 { text-align: center; color: var(--accent); font-size: 1.2rem; border-bottom: 2px solid var(--accent); padding-bottom: 10px; }
 
+        /* 設定エリア */
+        .settings-label { font-size: 0.8rem; color: var(--accent); margin-bottom: 8px; font-weight: bold; display: block; }
+        .lang-config { 
+            display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 15px; 
+            background: #111; padding: 10px; border-radius: 8px; border: 1px dashed var(--muted);
+        }
+        .lang-chip {
+            background: #333; color: #fff; padding: 5px 10px; border-radius: 20px;
+            font-size: 0.75rem; cursor: pointer; user-select: none; border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .lang-chip:hover { border-color: var(--accent); }
+        .lang-chip.active { background: var(--accent); color: #000; font-weight: bold; }
+
         .input-area { position: relative; margin-bottom: 10px; }
         textarea {
             width: 100%; height: 100px; background: #222; color: #fff;
-            border: 2px solid #444; border-radius: 8px; padding: 12px;
-            font-size: 16px; box-sizing: border-box; display: block;
+            border: 2px solid var(--muted); border-radius: 8px; padding: 12px;
+            font-size: 16px; box-sizing: border-box; display: block; outline: none;
         }
+        textarea:focus { border-color: var(--accent); }
 
         .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
         
@@ -39,13 +55,9 @@
         .step-jp { font-size: 1.1rem; line-height: 1.4; color: #fff; }
 
         .final-result-container {
-            margin-top: 30px;
-            padding: 20px;
-            background: var(--final-bg);
-            border: 2px solid var(--accent);
-            border-radius: 10px;
-            display: none;
-            text-align: center;
+            margin-top: 30px; padding: 20px; background: var(--final-bg);
+            border: 2px solid var(--accent); border-radius: 10px;
+            display: none; text-align: center;
         }
         .final-label { color: var(--accent); font-size: 0.8rem; font-weight: bold; margin-bottom: 10px; }
         .final-text { font-size: 1.4rem; font-weight: bold; line-height: 1.5; }
@@ -53,6 +65,8 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
         .loading-dots:after { content: '...'; animation: dots 1s infinite; }
         @keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+        
+        small { color: #888; font-size: 0.7rem; display: block; margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -60,6 +74,9 @@
 <div class="container">
     <h2>逆翻訳</h2>
     
+    <label class="settings-label">翻訳ルート設定 <small>※クリックして有効化/順番変更</small></label>
+    <div id="langConfig" class="lang-config"></div>
+
     <div class="input-area">
         <textarea id="inputText" placeholder="ここに文章を入力..."></textarea>
     </div>
@@ -78,16 +95,55 @@
 </div>
 
 <script>
-    const languages = [
-        {name: "ベンガル語", code: "bn"},{name: "ハワイ語", code: "haw"},
-        {name: "アラビア語", code: "ar"}, {name: "ヘブライ語", code: "he"},
-        {name: "ヨルバ語", code: "yo"}, {name: "モンゴル語", code: "mn"},
-        {name: "フィンランド語", code: "fi"}, {name: "ズールー語", code: "zu"},
-        {name: "アムハラ語", code: "am"}, {name: "クルド語", code: "ku"}
+    // 初期言語リスト
+    let languages = [
+        {name: "ベンガル語", code: "bn", active: true},
+        {name: "ハワイ語", code: "haw", active: true},
+        {name: "アラビア語", code: "ar", active: true},
+        {name: "ヘブライ語", code: "he", active: true},
+        {name: "ヨルバ語", code: "yo", active: true},
+        {name: "モンゴル語", code: "mn", active: true},
+        {name: "フィンランド語", code: "fi", active: true},
+        {name: "ズールー語", code: "zu", active: true},
+        {name: "アムハラ語", code: "am", active: true},
+        {name: "クルド語", code: "ku", active: true}
     ];
 
-    let isProcessing = false; // 実行中フラグ
-    let shouldStop = false;  // 中断命令フラグ
+    let isProcessing = false;
+    let shouldStop = false;
+
+    // 言語チップの描画
+    function renderLangConfig() {
+        const container = document.getElementById('langConfig');
+        container.innerHTML = "";
+        languages.forEach((lang, index) => {
+            const chip = document.createElement('div');
+            chip.className = `lang-chip ${lang.active ? 'active' : ''}`;
+            chip.innerText = `${lang.active ? (index + 1) + '.' : ''}${lang.name}`;
+            chip.onclick = () => toggleOrMoveLanguage(index);
+            container.appendChild(chip);
+        });
+    }
+
+    // 言語の有効化/無効化・並び替えロジック
+    function toggleOrMoveLanguage(index) {
+        if (isProcessing) return;
+        
+        const lang = languages[index];
+        if (lang.active) {
+            // すでにアクティブな場合は末尾に移動するか、無効化するか
+            // 今回は「クリックするたびに選択順に並ぶ」挙動のため、一度OFFにする
+            lang.active = false;
+            // 無効化したものはリストの最後に移動させる（整理のため）
+            languages.push(languages.splice(index, 1)[0]);
+        } else {
+            // 無効なものをクリックしたら有効化して、アクティブな群の最後に挿入
+            lang.active = true;
+            const activeCount = languages.filter(l => l.active).length;
+            languages.splice(activeCount - 1, 0, languages.splice(index, 1)[0]);
+        }
+        renderLangConfig();
+    }
 
     async function translate(text, source, target) {
         const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${source}&tl=${target}&dt=t&q=${encodeURIComponent(text)}`;
@@ -98,7 +154,7 @@
 
     function handleButtonClick() {
         if (isProcessing) {
-            shouldStop = true; // 翻訳中なら中断フラグを立てる
+            shouldStop = true;
         } else {
             startReTranslation();
         }
@@ -112,9 +168,10 @@
         const finalLabel = document.getElementById('finalLabel');
         const btn = document.getElementById('mainBtn');
         
-        if (!input) return;
+        const activeLangs = languages.filter(l => l.active);
 
-        // 状態初期化
+        if (!input || activeLangs.length === 0) return;
+
         isProcessing = true;
         shouldStop = false;
         btn.innerText = "中止する";
@@ -124,14 +181,13 @@
         
         let currentText = input;
 
-        for (let i = 0; i < languages.length; i++) {
-            // 中断チェック
+        for (let i = 0; i < activeLangs.length; i++) {
             if (shouldStop) {
                 finalLabel.innerText = "ーーー 中断されました ーーー";
                 break;
             }
 
-            const lang = languages[i];
+            const lang = activeLangs[i];
             const box = document.createElement('div');
             box.className = 'step-box';
             box.innerHTML = `<div class="step-header">STEP ${i+1}: ${lang.name} </div><div class="step-jp loading-dots">翻訳中</div>`;
@@ -148,9 +204,8 @@
             await new Promise(r => setTimeout(r, 600));
         }
 
-        // 終了処理
         if (!shouldStop) {
-            finalLabel.innerText = "";
+            finalLabel.innerText = "ーーー 最終結果 ーーー";
         }
         
         finalText.innerText = currentText;
@@ -164,12 +219,15 @@
     }
 
     function clearAll() {
-        if(isProcessing) return; // 実行中は削除不可
-            document.getElementById('inputText').value = "";
-            document.getElementById('logArea').innerHTML = "";
-            document.getElementById('finalArea').style.display = "none";
-            document.getElementById('mainBtn').innerText = "実行";
+        if(isProcessing) return;
+        document.getElementById('inputText').value = "";
+        document.getElementById('logArea').innerHTML = "";
+        document.getElementById('finalArea').style.display = "none";
+        document.getElementById('mainBtn').innerText = "実行";
     }
+
+    // 初回起動
+    renderLangConfig();
 </script>
 
 </body>
