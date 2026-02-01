@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>逆翻訳</title>
+    <title>逆翻訳 - スタイリッシュ版</title>
     <style>
         :root {
             --bg: #000;
@@ -15,7 +15,6 @@
             --glow: rgba(255, 255, 0, 0.4);
             --inactive: #333;
         }
-        /* 全体の高さを調整して中央寄せに */
         html, body { height: 100%; margin: 0; background: var(--bg); }
         body { 
             font-family: sans-serif; 
@@ -30,18 +29,66 @@
             max-width: 500px; 
             width: 100%;
             margin: 0 auto; 
-            flex-grow: 1; /* 下の余白を埋めるために要素を広げる */
+            flex-grow: 1;
         }
         
         h2 { text-align: center; color: var(--accent); font-size: 1.2rem; border-bottom: 2px solid var(--accent); padding-bottom: 10px; margin-top: 10px; letter-spacing: 2px; text-shadow: 0 0 10px var(--glow); }
         
-        .lang-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-        .bulk-select-btn { background: transparent; border: 1px solid #555; color: #aaa; font-size: 0.7rem; padding: 4px 8px; border-radius: 4px; cursor: pointer; outline: none; }
+        /* アコーディオン設定 */
+        details {
+            margin-bottom: 15px;
+            background: #111;
+            border-radius: 12px;
+            border: 1px solid #222;
+            overflow: hidden;
+            transition: 0.3s;
+        }
+        summary {
+            padding: 12px 15px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #aaa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            list-style: none;
+            outline: none;
+        }
+        summary::-webkit-details-marker { display: none; }
+        summary::after {
+            content: '▼';
+            font-size: 0.7rem;
+            transition: 0.3s;
+            margin-left: 10px;
+        }
+        details[open] summary::after { transform: rotate(180deg); }
+        details[open] { border-color: #444; }
+
+        .bulk-select-btn { 
+            background: #222; 
+            border: 1px solid #555; 
+            color: #ccc; 
+            font-size: 0.7rem; 
+            padding: 4px 10px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+        }
         .bulk-select-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-        .lang-selector { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 15px 0; padding: 10px; background: #111; border-radius: 12px; border: 1px solid #222; }
+        .lang-selector { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 8px; 
+            padding: 0 15px 15px 15px; 
+            max-height: 180px; 
+            overflow-y: auto; 
+        }
+        /* スクロールバー */
+        .lang-selector::-webkit-scrollbar { width: 4px; }
+        .lang-selector::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
         .lang-chip { 
-            padding: 6px 12px; font-size: 0.8rem; border-radius: 20px; background: var(--inactive); 
+            padding: 6px 12px; font-size: 0.75rem; border-radius: 20px; background: var(--inactive); 
             color: #888; cursor: pointer; border: 1px solid #444; transition: 0.2s; position: relative;
         }
         .lang-chip.active { background: #332e00; color: var(--accent); border-color: var(--accent); }
@@ -53,7 +100,7 @@
         }
 
         .input-area { position: relative; margin-top: 5px; margin-bottom: 15px; }
-        textarea { width: 100%; height: 100px; background: #151515; color: #fff; border: 2px solid #333; border-radius: 12px; padding: 15px; font-size: 16px; box-sizing: border-box; display: block; outline: none; resize: none; }
+        textarea { width: 100%; height: 120px; background: #151515; color: #fff; border: 2px solid #333; border-radius: 12px; padding: 15px; font-size: 16px; box-sizing: border-box; display: block; outline: none; resize: none; }
         textarea:focus { border-color: var(--accent); }
 
         .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
@@ -65,10 +112,8 @@
         .btn-exec:hover { filter: brightness(1.1); }
         .btn-exec:active { transform: translateY(3px); box-shadow: 0 1px 0 #b3b300; }
         .btn-exec.stopping { background: var(--danger); color: #fff; box-shadow: 0 4px 0 #b33939; }
-        .btn-exec.stopping:active { box-shadow: 0 1px 0 #b33939; }
 
         .btn-clear { flex: 1; padding: 16px; background: #2a2a2a; color: #ccc; border: 1px solid #444; border-radius: 10px; font-size: 0.9rem; font-weight: bold; cursor: pointer; }
-        .btn-clear:active { background: #333; transform: scale(0.98); }
         
         .log-container { border-left: 3px solid var(--accent); padding-left: 15px; margin-bottom: 10px; }
         .step-box { background: var(--card-bg); margin-bottom: 10px; padding: 15px; border-radius: 8px; animation: fadeIn 0.4s ease-out forwards; border: 1px solid #333; }
@@ -90,11 +135,13 @@
 <div class="container">
     <h2>逆翻訳</h2>
     
-    <div class="lang-header">
-        <span style="font-size: 0.75rem; color: #888;">経由する言語を選択：</span>
-        <button id="bulkBtn" class="bulk-select-btn" onclick="toggleAllLangs()">全て外す</button>
-    </div>
-    <div id="langSelector" class="lang-selector"></div>
+    <details>
+        <summary>
+            <span>経由する言語を選択 (<span id="selectedCount">0</span>)</span>
+            <button id="bulkBtn" class="bulk-select-btn" onclick="event.preventDefault(); toggleAllLangs();">全て外す</button>
+        </summary>
+        <div id="langSelector" class="lang-selector"></div>
+    </details>
 
     <div class="input-area">
         <textarea id="inputText" placeholder="ここに文章を入力..."></textarea>
@@ -114,19 +161,14 @@
 
 <script>
     const languages = [
-        // 主要言語
         {name: "英語", code: "en"}, {name: "中国語", code: "zh-CN"}, 
         {name: "韓国語", code: "ko"}, {name: "フランス語", code: "fr"},
         {name: "ドイツ語", code: "de"}, {name: "スペイン語", code: "es"},
         {name: "ロシア語", code: "ru"}, {name: "イタリア語", code: "it"},
-        
-        // 変化が起きやすい言語
         {name: "アラビア", code: "ar"}, {name: "ヒンディー", code: "hi"},
         {name: "ベンガル", code: "bn"}, {name: "ヘブライ", code: "he"},
         {name: "タイ", code: "th"}, {name: "ベトナム", code: "vi"},
         {name: "ギリシャ", code: "el"}, {name: "トルコ", code: "tr"},
-        
-        // ユニークな表現になりやすい言語
         {name: "スワヒリ", code: "sw"}, {name: "ヨルバ", code: "yo"},
         {name: "アムハラ", code: "am"}, {name: "ズールー", code: "zu"},
         {name: "ハワイ", code: "haw"}, {name: "モンゴル", code: "mn"},
@@ -135,7 +177,6 @@
         {name: "ネパール", code: "ne"}, {name: "ラテン", code: "la"},
         {name: "クルド", code: "ku"}, {name: "マオリ", code: "mi"}
     ];
-
 
     let selectedLangs = [];
     let isProcessing = false;
@@ -192,16 +233,19 @@
 
     function updateChipOrders() {
         const chips = document.querySelectorAll('.lang-chip');
+        let count = 0;
         chips.forEach(chip => {
             const langName = chip.innerText;
             const langCode = languages.find(l => l.name === langName).code;
             const orderIndex = selectedLangs.findIndex(l => l.code === langCode);
             if (orderIndex > -1) {
                 chip.setAttribute('data-order', orderIndex + 1);
+                count++;
             } else {
                 chip.removeAttribute('data-order');
             }
         });
+        document.getElementById('selectedCount').innerText = count;
     }
 
     async function translate(text, source, target) {
@@ -272,7 +316,7 @@
         document.getElementById('logArea').innerHTML = "";
         document.getElementById('finalArea').style.display = "none";
         document.getElementById('mainBtn').innerText = "実行";
-        //initLangSelector();
+        initLangSelector();
     }
 
     initLangSelector();
