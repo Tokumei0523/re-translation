@@ -165,12 +165,10 @@
 
     function clearAll() {
         if(isProcessing) return; // 実行中は削除不可
-        if(confirm("全て削除しますか？")) {
             document.getElementById('inputText').value = "";
             document.getElementById('logArea').innerHTML = "";
             document.getElementById('finalArea').style.display = "none";
             document.getElementById('mainBtn').innerText = "実行";
-        }
     }
 </script>
 
