@@ -1,1 +1,156 @@
+<!DOCTYPE html>
+<html lang="ja">
 
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>⚡ INAZUMA | BATTLE 🔥</title>
+	<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+	<style>
+		body {
+			margin: 0;
+			height: 100vh;
+			display: flex;
+			background: #000;
+			overflow: hidden;
+			font-family: 'Archivo Black', sans-serif;
+		}
+
+		/* 共通設定 */
+		.side {
+			flex: 1;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			cursor: pointer;
+			position: relative;
+			transition: 0.15s ease-out;
+			-webkit-tap-highlight-color: transparent;
+		}
+
+		/* 左：PLAYER（雷門イエロー × 稲妻の切れ込み） */
+		.side-char {
+			background-color: #ffde00;
+			/* 境界線をジグザグにしてイナズマを表現 */
+			clip-path: polygon(0 0, 100% 0, 85% 35%, 100% 35%, 80% 100%, 0 100%);
+			z-index: 2;
+		}
+
+		/* 右：SKILL（ネイビー × オレンジ） */
+		.side-skill {
+			background-color: #003a8c;
+			/* 深い雷門ネイビー */
+			margin-left: -10vw;
+			z-index: 1;
+		}
+
+		.content {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			transform: skewX(-10deg);
+		}
+
+		.side-char .content {
+			padding-right: 12vw;
+			color: #003a8c;
+		}
+
+		.side-skill .content {
+			padding-left: 12vw;
+			color: #ff5a00;
+		}
+
+		/* 技側は炎のオレンジ文字 */
+
+		.label {
+			font-size: clamp(2rem, 7vw, 5rem);
+			margin: 0;
+			letter-spacing: -1px;
+		}
+
+		.emoji {
+			font-size: clamp(2rem, 6vw, 4rem);
+			margin-bottom: 0.5rem;
+		}
+
+		/* アニメーション */
+		.side:hover {
+			filter: brightness(1.1);
+		}
+
+		.side:active {
+			transform: scale(0.95);
+		}
+
+		/* コピー完了のミニマル通知 */
+		.toast {
+			position: fixed;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%) scale(0.5);
+			background: #fff;
+			color: #000;
+			padding: 20px 40px;
+			font-size: 2rem;
+			opacity: 0;
+			pointer-events: none;
+			z-index: 100;
+			border: 4px solid #000;
+		}
+
+		.show-toast {
+			animation: impact 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+		}
+
+		@keyframes impact {
+			0% {
+				opacity: 0;
+				transform: translate(-50%, -50%) scale(2);
+			}
+
+			100% {
+				opacity: 1;
+				transform: translate(-50%, -50%) scale(1);
+			}
+		}
+	</style>
+</head>
+
+<body>
+
+	<div id="toast" class="toast">COPIED!</div>
+
+	<div class="side side-char" onclick="copy('char')">
+		<div class="content">
+			<h2 class="label">PLAYER</h2>
+		</div>
+	</div>
+
+	<div class="side side-skill" onclick="copy('skill')">
+		<div class="content">
+			<h2 class="label" style="color:#ffde00">SKILL</h2>
+		</div>
+	</div>
+
+	<script>
+		const data = {
+        char: ["円堂 守", "豪炎寺 修也", "鬼道 有人", "風丸 一郎太", "壁山 塀吾郎", "栗松 鉄平", "少林寺 歩", "宍戸 佐吉", "松野 空介", "影野 仁", "目金 欠流", "土門 飛鳥", "一之瀬 一哉", "亜風炉 照美", "吹雪 士郎", "吹雪 アツヤ", "木暮 夕弥", "浦部 リカ", "立向居 勇気", "綱海 条介", "基山 ヒロト", "不動 明王", "宇都宮 虎丸", "飛鷹 征矢", "フィディオ・アルデナ", "ロニージョ", "エドガー・バルチナス", "テレス・トルーエ", "松風 天馬", "剣城 京介", "神童 拓人", "西園 信助", "霧野 蘭丸", "倉間 典人", "浜野 海士", "速水 鶴正", "車田 剛一", "三国 太一", "天城 大地", "狩屋 マサキ", "影山 輝", "錦 龍馬", "フェイ・ルーン", "菜花 黄名子", "瞬木 隼人", "井吹 宗正", "森村 好葉", "皆帆 和人", "真名部 陣一郎", "鉄角 真", "野咲 さくら", "九坂 隆二", "市川 座名九郎", "稲森 明日人", "灰崎 凌兵", "野坂 悠馬", "一星 光", "小僧丸 サスケ", "剛陣 鉄之助", "海腹 のりか", "日和 正勝", "万作 雄一郎", "岩戸 高志", "氷浦 貴利名", "吉良 ヒロト", "砂木沼 治", "笹波 雲明", "円堂 ハル"],
+        skill: ["ファイアトルネード", "ゴッドハンド", "エターナルブリザード", "皇帝ペンギン2号", "マジン・ザ・ハンド", "デスゾーン", "ゴッドノウズ", "ザ・ウォール", "イナズマ落とし", "爆熱ストーム", "流星ブレード", "ヘブンズタイム", "ウルフレジェンド", "ジ・アース", "天空落とし", "ジェットストリーム", "マッハウィンド", "デスドロップ", "ファイアレモネード", "ラストリゾート", "ドラゴンクラッシュ", "百烈ショット", "旋風陣", "炎の風見鶏", "ツナミブースト", "爆熱スクリュー", "正義の鉄拳", "ゴッドキャッチ", "皇帝ペンギン1号", "グランドファイア", "ワイバーンブリザード", "ローズスプラッシュ", "メガネクラッシュ", "トライアングルZ", "イリュージョンボール", "ウォータイム・バニッシュ", "ユニバースブラスト", "スーパーノヴァ", "スペースペンギン", "ザ・バース"]
+    };
+
+    function copy(type) {
+        const val = data[type][Math.floor(Math.random() * data[type].length)];
+        navigator.clipboard.writeText(val).then(() => {
+            const toast = document.getElementById('toast');
+            toast.classList.remove('show-toast');
+            void toast.offsetWidth;
+            toast.classList.add('show-toast');
+            setTimeout(() => toast.classList.remove('show-toast'), 800);
+        });
+    }
+	</script>
+
+</body>
+
+</html>
